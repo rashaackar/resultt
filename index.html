@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Public Examination Result</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#eef2f7;
+}
+
+/* Logo Full Width */
+.logo-container{
+    width:100%;
+    background:#ffffff;
+    padding:0;
+}
+
+.logo-container img{
+    width:100%;
+    max-height:150px;
+    object-fit:contain;
+    display:block;
+}
+
+/* Search Box */
+.search-box{
+    width:420px;
+    max-width:92%;
+    margin:25px auto;
+    background:white;
+    padding:22px;
+    border-radius:12px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input,select{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:16px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:15px;
+    background:#0d5ea6;
+    color:white;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+/* Result Card */
+.result-card{
+    width:460px;
+    max-width:92%;
+    margin:20px auto;
+    background:white;
+    border:3px solid #0d5ea6;
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 0 12px rgba(0,0,0,0.15);
+}
+
+.student-box{
+    background:#cfe2ff;
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+}
+
+.badge{
+    background:#1fb5b5;
+    color:white;
+    padding:8px;
+    margin:8px 0;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th,td{
+    border:1px solid #333;
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#e3eafc;
+}
+
+.total{
+    background:#165a9b;
+    color:white;
+    padding:12px;
+    text-align:center;
+    margin-top:15px;
+    font-weight:bold;
+}
+
+.final{
+    background:#b5122f;
+    color:white;
+    padding:15px;
+    text-align:center;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.pass{
+    background:#1b8f3a;
+}
+
+.congrats{
+    text-align:center;
+    color:green;
+    font-size:18px;
+    font-weight:bold;
+    margin-top:10px;
+}
+
+.back-btn{
+    background:#555;
+    margin-top:15px;
+}
+
+/* Footer */
+.footer{
+    text-align:center;
+    padding:15px;
+    font-size:14px;
+    color:#555;
+    margin-top:30px;
+}
+.footer strong{
+    color:#0d5ea6;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Logo -->
+<div class="logo-container">
+    <img src="madrasa-logo.png" alt="Madrasa Logo">
+</div>
+
+<!-- Search -->
+<div id="searchBox" class="search-box">
+<select id="std">
+<option value="">Select Standard</option>
+<option value="1">Class 1</option>
+<option value="2">Class 2</option>
+<option value="3">Class 3</option>
+<option value="4">Class 4</option>
+<option value="6">Class 6</option>
+<option value="8">Class 8</option>
+<option value="9">Class 9</option>
+<option value="11">Class 11</option>
+</select>
+
+<input type="text" id="adm" placeholder="Enter Admission Number">
+<button onclick="showResult()">Get Result</button>
+</div>
+
+<div id="result"></div>
+
+<!-- Footer -->
+<div class="footer">
+Developed by <strong>SKSSF Media Wing Palyathadka Unit</strong>
+</div>
+
+<script>
+let students=[];
+
+fetch("students.xlsx")
+.then(res=>res.arrayBuffer())
+.then(data=>{
+let workbook = XLSX.read(data);
+workbook.SheetNames.forEach(sheetName=>{
+let sheet = workbook.Sheets[sheetName];
+let rows = XLSX.utils.sheet_to_json(sheet);
+
+rows.forEach(r=>{
+let subjects=[];
+Object.keys(r).forEach(key=>{
+if(key.startsWith("sub") && r[key]){
+let num = key.replace("sub","");
+subjects.push([r[key], Number(r["mark"+num]||0)]);
+}
+});
+
+students.push({
+adm:String(r.adm).trim(),
+class:String(r.class).trim(),
+name:r.name,
+father:r.father,
+school:r.school,
+subjects:subjects
+});
+});
+});
+});
+
+function showResult(){
+let adm=document.getElementById("adm").value.trim();
+let std=document.getElementById("std").value;
+let box=document.getElementById("result");
+
+let st=students.find(s=>s.adm==adm && s.class==std);
+
+if(!st){
+box.innerHTML="<div class='result-card'>Result not found</div>";
+return;
+}
+
+document.getElementById("searchBox").style.display="none";
+
+let total=0;
+let pass=true;
+let rows="";
+
+st.subjects.forEach(s=>{
+total+=s[1];
+if(s[1]<18) pass=false;
+rows+=`<tr><td>${s[0]}</td><td>${s[1]} / 50</td></tr>`;
+});
+
+let max = st.subjects.length*50;
+let percent = ((total/max)*100).toFixed(2);
+
+box.innerHTML=`
+<div class="result-card">
+
+<div class="student-box">
+<h2>${st.name}</h2>
+<div>S/o ${st.father}</div>
+<hr>
+<div>${st.school}</div>
+<div class="badge">Class : ${st.class}</div>
+<div class="badge">Admission No : ${st.adm}</div>
+</div>
+
+<table>
+<tr><th>Subject</th><th>Marks</th></tr>
+${rows}
+<tr><th>Total</th><th>${total}</th></tr>
+<tr><th>Percentage</th><th>${percent}%</th></tr>
+</table>
+
+<div class="total">Maximum Marks : ${max}</div>
+<div class="final ${pass?'pass':''}">
+${pass?'PASS':'FAIL'}
+</div>
+
+${pass?'<div class="congrats">🎉 Congratulations 🎉</div>':''}
+
+<button class="back-btn" onclick="location.reload()">
+Search Another Result
+</button>
+
+</div>
+`;
+}
+</script>
+
+</body>
+</html>
